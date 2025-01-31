@@ -1,21 +1,19 @@
-
-from kafka import *
+from confluent_kafka import Producer
 import datetime as dt
 import json
 import random
 import time
 import uuid
 
-
-
+# Fonction pour générer une transaction aléatoire
 def generate_transaction():
     transaction_types = ['achat', 'remboursement', 'transfert']
     payment_methods = ['carte_de_credit', 'especes', 'virement_bancaire', 'erreur']
 
     current_time = dt.datetime.now().isoformat()
 
-    Villes = ["Paris", "Marseille", "Lyon", "Toulouse", "Nice", "Nantes", "Strasbourg", "Montpellier", "Bordeaux", "Lille", "Rennes", "Reims", "Le Havre", "Saint-Étienne", "Toulon" , None]
-    Rues = ["Rue de la République", "Rue de Paris", "rue Auguste Delaune", "Rue Gustave Courbet ", "Rue de Luxembourg", "Rue Fontaine", "Rue Zinedine Zidane", "Rue de Bretagne", "Rue Marceaux", "Rue Gambetta", "Rue du Faubourg Saint-Antoine", "Rue de la Grande Armée", "Rue de la Villette", "Rue de la Pompe", "Rue Saint-Michel" , None]
+    Villes = ["Paris", "Marseille", "Lyon", "Toulouse", "Nice", "Nantes", "Strasbourg", "Montpellier", "Bordeaux", "Lille", "Rennes", "Reims", "Le Havre", "Saint-Étienne", "Toulon", None]
+    Rues = ["Rue de la République", "Rue de Paris", "rue Auguste Delaune", "Rue Gustave Courbet", "Rue de Luxembourg", "Rue Fontaine", "Rue Zinedine Zidane", "Rue de Bretagne", "Rue Marceaux", "Rue Gambetta", "Rue du Faubourg Saint-Antoine", "Rue de la Grande Armée", "Rue de la Villette", "Rue de la Pompe", "Rue Saint-Michel", None]
 
     transaction_data = {
         "id_transaction": str(uuid.uuid4()),
@@ -40,30 +38,29 @@ def generate_transaction():
 
     return transaction_data
 
+# Initialisation du producteur Kafka
+producer = Producer({
+    'bootstrap.servers': 'localhost:9092'  # Serveur Kafka
+})
 
-#Envoyer la data sur votre conducktor
+try:
+    for _ in range(200):
+        # Générer une transaction et sérialiser en JSON
+        transaction = generate_transaction()
+        transaction_json = json.dumps(transaction).encode('utf-8')  # Sérialisation manuelle en JSON
+        
+        # Envoyer la transaction
+        producer.produce('transaction', value=transaction_json)
+        
+        # Assurer que le message est bien envoyé
+        producer.flush()
+        print(f"Transaction envoyée : {transaction}")
 
+        # Pause entre les envois
+        time.sleep(1)
 
-#--------------------------------------------------------------------
-#                     MANIP SUR LES DF
-#--------------------------------------------------------------------
-#       convertir USD en EUR
-#       ajouter le TimeZone
-#       remplacer la date en string en une valeur date
-#       supprimer les transaction en erreur
-#       supprimer les valeur en None ( Adresse )
-
-
-
-# si ça vous gene faite mettez tout sur la meme partie ( en gros supprimer les sous structure pour tout mettre en 1er plan )
-# modifier le consumer avant
-
-
-
-# KAFKA PRODUCEUR
-# Reception des donnes en Pyspark ou en Spark scala
-# Manip
-# Envoie dans un bucket Minio ou sur hadoop pour les plus téméraire
-
-
-
+finally:
+    # S'assurer que tous les messages sont bien envoyés
+    producer.flush()
+    print("Fin de l'envoi des messages.")
+    
